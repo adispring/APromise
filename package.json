@@ -1,0 +1,9 @@
+{
+  "name": "adp",
+  "version": "1.0.0",
+  "description": "one Promise A+ implementation.",
+  "main": "index.js",
+  "repository": "git@github.com:adispring/adp.git",
+  "author": "wangzengdi <sunnyadi@163.com>",
+  "license": "MIT"
+}
