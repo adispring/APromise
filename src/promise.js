@@ -1,15 +1,12 @@
-const State = {
-  Pending: 'Pending',
-  Fulfilled: 'Fulfilled',
-  Rejected: 'Rejected',
-};
+const State = { Pending: 0, Fulfilled: 1, Rejected: 2 };
 
 const isFunction = val => typeof val === 'function';
 const isObject = val => val && typeof val === 'object';
 
-const spy = () => {
+const spy = scope => {
   let called = false;
-  return fn => (...args) => called || ((called = true) && fn(...args));
+  return (fn, context) => (...args) =>
+    called || ((called = true) && fn.apply(context || scope, args));
 };
 
 const promiseResolution = (promise, x) => {
@@ -17,21 +14,20 @@ const promiseResolution = (promise, x) => {
     promise.reject(new TypeError('circular reference'));
   }
   if (isObject(x) || isFunction(x)) {
-    const once = spy();
-    let xthen;
+    const once = spy(promise);
     try {
-      xthen = x.then;
+      const xthen = x.then;
       if (isFunction(xthen)) {
         xthen.call(
           x,
           once(y => promiseResolution(promise, y)),
-          once(r => promise.reject(r))
+          once(promise.reject)
         );
       } else {
         promise.fulfill(x);
       }
     } catch (e) {
-      once(() => promise.reject(e))();
+      once(promise.reject)(e);
     }
   } else {
     promise.fulfill(x);
@@ -45,7 +41,6 @@ class APromise {
     this.callbacks = [];
     executor(this.fulfill.bind(this), this.reject.bind(this));
   }
-
   transition(state, x) {
     if (this.state === State.Pending) {
       this.state = state;
@@ -61,19 +56,17 @@ class APromise {
   }
   then(onFulfilled, onRejected) {
     const promise2 = new APromise(() => {});
-    const onFulfill = isFunction(onFulfilled) ? onFulfilled : v => v;
-    const onReject = isFunction(onRejected)
-      ? onRejected
-      : r => {
-          throw r;
-        };
     const schedulePromise2Resolution = () => {
       process.nextTick(() => {
+        const onFulfill = isFunction(onFulfilled) ? onFulfilled : v => v;
+        const onReject = isFunction(onRejected)
+          ? onRejected
+          : r => {
+              throw r;
+            };
+        const onHandler = this.state === State.Fulfilled ? onFulfill : onReject;
         try {
-          const x =
-            this.state === State.Fulfilled
-              ? onFulfill(this.x)
-              : onReject(this.x);
+          const x = onHandler(this.x);
           promiseResolution(promise2, x);
         } catch (e) {
           promise2.reject(e);
