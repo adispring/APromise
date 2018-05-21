@@ -36,15 +36,12 @@ const promiseResolution = (promise, x) => {
 
 class APromise {
   constructor(executor) {
-    this.state = State.Pending;
-    this.x = null;
-    this.handlers = [];
+    Object.assign(this, { state: State.Pending, x: null, handlers: [] });
     executor(this.fulfill.bind(this), this.reject.bind(this));
   }
   transition(state, x) {
     if (this.state === State.Pending) {
-      this.state = state;
-      this.x = x;
+      Object.assign(this, { state, x });
       this.handlers.forEach(handler => handler());
     }
   }
