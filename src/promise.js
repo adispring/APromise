@@ -49,7 +49,7 @@ class APromise {
   }
   then(onFulfilled, onRejected) {
     const promise2 = new APromise(() => {});
-    const scheduleHandler = () => {
+    const scheduleHandler = () =>
       process.nextTick(() => {
         const onHandler =
           this.state === State.Fulfilled
@@ -64,7 +64,6 @@ class APromise {
           promise2.reject(e);
         }
       });
-    };
     if (this.state === State.Pending) {
       this.handlers.push(scheduleHandler);
     } else {
