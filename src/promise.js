@@ -10,7 +10,7 @@ const spy = scope => {
     called || ((called = true) && fn.apply(context || scope, args));
 };
 
-const promiseResolution = (promise, x) => {
+const resolve = (promise, x) => {
   if (promise === x) {
     promise.reject(new TypeError('circular reference'));
   } else if (isObject(x) || isFunction(x)) {
@@ -18,11 +18,7 @@ const promiseResolution = (promise, x) => {
     try {
       const xthen = x.then;
       if (isFunction(xthen)) {
-        xthen.call(
-          x,
-          once(y => promiseResolution(promise, y)),
-          once(promise.reject)
-        );
+        xthen.call(x, once(y => resolve(promise, y)), once(promise.reject));
       } else {
         promise.fulfill(x);
       }
@@ -63,7 +59,7 @@ class APromise {
               });
         try {
           const x = onHandler(this.x);
-          promiseResolution(promise2, x);
+          resolve(promise2, x);
         } catch (e) {
           promise2.reject(e);
         }
