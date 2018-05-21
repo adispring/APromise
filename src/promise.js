@@ -12,8 +12,7 @@ const spy = scope => {
 const promiseResolution = (promise, x) => {
   if (promise === x) {
     promise.reject(new TypeError('circular reference'));
-  }
-  if (isObject(x) || isFunction(x)) {
+  } else if (isObject(x) || isFunction(x)) {
     const once = spy(promise);
     try {
       const xthen = x.then;
