@@ -4,7 +4,7 @@
   "description": "one Promise A+ implementation.",
   "main": "src/promise.js",
   "scripts": {
-    "test:promise": "node test/aplus_test.js"
+    "test": "node test/aplus_test.js"
   },
   "repository": "git@github.com:adispring/adp.git",
   "author": "wangzengdi <sunnyadi@163.com>",
