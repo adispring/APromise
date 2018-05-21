@@ -2,6 +2,7 @@ const State = { Pending: 0, Fulfilled: 1, Rejected: 2 };
 
 const isFunction = val => typeof val === 'function';
 const isObject = val => val && typeof val === 'object';
+const functionWithFallback = (f, fallback) => (isFunction(f) ? f : fallback);
 
 const spy = scope => {
   let called = false;
@@ -37,14 +38,14 @@ class APromise {
   constructor(executor) {
     this.state = State.Pending;
     this.x = null;
-    this.callbacks = [];
+    this.handlers = [];
     executor(this.fulfill.bind(this), this.reject.bind(this));
   }
   transition(state, x) {
     if (this.state === State.Pending) {
       this.state = state;
       this.x = x;
-      this.callbacks.forEach(cb => cb());
+      this.handlers.forEach(handler => handler());
     }
   }
   fulfill(value) {
@@ -55,15 +56,14 @@ class APromise {
   }
   then(onFulfilled, onRejected) {
     const promise2 = new APromise(() => {});
-    const schedulePromise2Resolution = () => {
+    const scheduleHandler = () => {
       process.nextTick(() => {
-        const onFulfill = isFunction(onFulfilled) ? onFulfilled : v => v;
-        const onReject = isFunction(onRejected)
-          ? onRejected
-          : r => {
-              throw r;
-            };
-        const onHandler = this.state === State.Fulfilled ? onFulfill : onReject;
+        const onHandler =
+          this.state === State.Fulfilled
+            ? functionWithFallback(onFulfilled, v => v)
+            : functionWithFallback(onRejected, r => {
+                throw r;
+              });
         try {
           const x = onHandler(this.x);
           promiseResolution(promise2, x);
@@ -73,9 +73,9 @@ class APromise {
       });
     };
     if (this.state === State.Pending) {
-      this.callbacks.push(schedulePromise2Resolution);
+      this.handlers.push(scheduleHandler);
     } else {
-      schedulePromise2Resolution();
+      scheduleHandler();
     }
     return promise2;
   }
