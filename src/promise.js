@@ -1,76 +1,81 @@
-const State = { Pending: 0, Fulfilled: 1, Rejected: 2 };
+const State = {
+  Pending: 'Pending',
+  Fulfilled: 'Fulfilled',
+  Rejected: 'Rejected'
+}
 
-const isFunction = val => typeof val === 'function';
-const isObject = val => val && typeof val === 'object';
-const functionWithFallback = (f, fallback) => (isFunction(f) ? f : fallback);
+const isFunction = val => typeof val === 'function'
+const isObject = val => val && typeof val === 'object'
+const functionWithFallback = (f, fallback) => (isFunction(f) ? f : fallback)
+const nextTick = process && process.nextTick ? process.nextTick : setImmediate
 
 const spy = scope => {
-  let called = false;
+  let called = false
   return (fn, context) => (...args) =>
-    called || ((called = true) && fn.apply(context || scope, args));
-};
+    called || ((called = true) && fn.apply(context || scope, args))
+}
 
 const resolve = (promise, x) => {
   if (promise === x) {
-    promise.reject(new TypeError('circular reference'));
+    promise.reject(new TypeError('circular reference'))
   } else if (isObject(x) || isFunction(x)) {
-    const once = spy(promise);
+    const once = spy(promise)
     try {
-      const xthen = x.then;
+      const xthen = x.then
       if (isFunction(xthen)) {
-        xthen.call(x, once(y => resolve(promise, y)), once(promise.reject));
+        xthen.call(x, once(y => resolve(promise, y)), once(promise.reject))
       } else {
-        promise.fulfill(x);
+        promise.fulfill(x)
       }
     } catch (e) {
-      once(promise.reject)(e);
+      once(promise.reject)(e)
     }
   } else {
-    promise.fulfill(x);
+    promise.fulfill(x)
   }
-};
+}
 
 class APromise {
-  constructor(executor) {
-    Object.assign(this, { state: State.Pending, x: null, handlers: [] });
-    executor(x => resolve(this, x), this.reject.bind(this));
+  constructor (executor) {
+    Object.assign(this, { state: State.Pending, x: null, handlers: [] })
+    executor(x => resolve(this, x), this.reject.bind(this))
   }
-  transition(state, x) {
+  transition (state, x) {
     if (this.state === State.Pending) {
-      Object.assign(this, { state, x });
-      this.handlers.forEach(handler => handler());
+      Object.assign(this, { state, x })
+      this.handlers.forEach(handler => handler())
     }
   }
-  fulfill(value) {
-    this.transition(State.Fulfilled, value);
+  fulfill (value) {
+    this.transition(State.Fulfilled, value)
   }
-  reject(reason) {
-    this.transition(State.Rejected, reason);
+  reject (reason) {
+    this.transition(State.Rejected, reason)
   }
-  then(onFulfilled, onRejected) {
-    const promise2 = new APromise(() => {});
+  then (onFulfilled, onRejected) {
+    const promise2 = new APromise(() => {})
     const scheduleHandler = () =>
-      process.nextTick(() => {
+      nextTick(() => {
         const onHandler =
           this.state === State.Fulfilled
             ? functionWithFallback(onFulfilled, v => v)
             : functionWithFallback(onRejected, r => {
-                throw r;
-              });
+                throw r
+              })
         try {
-          const x = onHandler(this.x);
-          resolve(promise2, x);
+          const x = onHandler(this.x)
+          resolve(promise2, x)
         } catch (e) {
-          promise2.reject(e);
+          promise2.reject(e)
         }
-      });
+      })
     if (this.state === State.Pending) {
-      this.handlers.push(scheduleHandler);
+      this.handlers.push(scheduleHandler)
     } else {
-      scheduleHandler();
+      scheduleHandler()
     }
-    return promise2;
+    return promise2
   }
 }
 
-module.exports = APromise;
+module.exports = APromise

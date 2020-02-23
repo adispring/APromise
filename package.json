@@ -11,9 +11,6 @@
   "license": "MIT",
   "devDependencies": {
     "chai": "^4.1.2",
-    "eslint": "^4.19.1",
-    "eslint-config-airbnb": "^16.1.0",
-    "eslint-plugin-import": "^2.12.0",
     "mocha": "^5.2.0",
     "promises-aplus-tests": "^2.1.2"
   },
