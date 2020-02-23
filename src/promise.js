@@ -33,7 +33,7 @@ const resolve = (promise, x) => {
 class APromise {
   constructor(executor) {
     Object.assign(this, { state: State.Pending, x: null, handlers: [] });
-    executor(this.fulfill.bind(this), this.reject.bind(this));
+    executor(x => resolve(this, x), this.reject.bind(this));
   }
   transition(state, x) {
     if (this.state === State.Pending) {
