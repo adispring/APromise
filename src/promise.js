@@ -7,9 +7,12 @@ const State = {
 const isFunction = val => typeof val === 'function'
 const isObject = val => val && typeof val === 'object'
 const functionWithFallback = (f, fallback) => (isFunction(f) ? f : fallback)
-const nextTick = process && process.nextTick ? process.nextTick : setImmediate
+const nextTick =
+  (typeof process !== 'undefined' && process.nextTick) ||
+  (typeof setImmediate === 'function' && setImmediate) ||
+  setTimeout
 
-const spy = scope => {
+const onceCreator = scope => {
   let called = false
   return (fn, context) => (...args) =>
     called || ((called = true) && fn.apply(context || scope, args))
@@ -19,7 +22,7 @@ const resolve = (promise, x) => {
   if (promise === x) {
     promise.reject(new TypeError('circular reference'))
   } else if (isObject(x) || isFunction(x)) {
-    const once = spy(promise)
+    const once = onceCreator(promise)
     try {
       const xthen = x.then
       if (isFunction(xthen)) {
@@ -38,7 +41,8 @@ const resolve = (promise, x) => {
 class APromise {
   constructor (executor) {
     Object.assign(this, { state: State.Pending, x: null, handlers: [] })
-    executor(x => resolve(this, x), this.reject.bind(this))
+    const once = onceCreator(this)
+    executor(once(x => resolve(this, x)), once(this.reject.bind(this)))
   }
   transition (state, x) {
     if (this.state === State.Pending) {
