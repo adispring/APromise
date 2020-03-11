@@ -26,7 +26,11 @@ const resolve = (promise, x) => {
     try {
       const xthen = x.then
       if (isFunction(xthen)) {
-        xthen.call(x, once(y => resolve(promise, y)), once(promise.reject))
+        xthen.call(
+          x,
+          once(y => resolve(promise, y)),
+          once(promise.reject)
+        )
       } else {
         promise.fulfill(x)
       }
@@ -42,20 +46,27 @@ class APromise {
   constructor (executor) {
     Object.assign(this, { state: State.Pending, x: null, handlers: [] })
     const once = onceCreator(this)
-    executor(once(x => resolve(this, x)), once(this.reject.bind(this)))
+    executor(
+      once(x => resolve(this, x)),
+      once(this.reject.bind(this))
+    )
   }
+
   transition (state, x) {
     if (this.state === State.Pending) {
       Object.assign(this, { state, x })
       this.handlers.forEach(handler => handler())
     }
   }
+
   fulfill (value) {
     this.transition(State.Fulfilled, value)
   }
+
   reject (reason) {
     this.transition(State.Rejected, reason)
   }
+
   then (onFulfilled, onRejected) {
     const promise2 = new APromise(() => {})
     const scheduleHandler = () =>
