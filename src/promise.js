@@ -18,7 +18,7 @@ const onceCreator = scope => {
     called || ((called = true) && fn.apply(context || scope, args))
 }
 
-const resolve = (promise, x) => {
+const resolveProcedure = (promise, x) => {
   if (promise === x) {
     promise.reject(new TypeError('circular reference'))
   } else if (isObject(x) || isFunction(x)) {
@@ -28,7 +28,7 @@ const resolve = (promise, x) => {
       if (isFunction(xthen)) {
         xthen.call(
           x,
-          once(y => resolve(promise, y)),
+          once(y => resolveProcedure(promise, y)),
           once(promise.reject)
         )
       } else {
@@ -47,7 +47,7 @@ class APromise {
     Object.assign(this, { state: State.Pending, x: null, handlers: [] })
     const once = onceCreator(this)
     executor(
-      once(x => resolve(this, x)),
+      once(x => resolveProcedure(this, x)),
       once(this.reject.bind(this))
     )
   }
@@ -79,7 +79,7 @@ class APromise {
               })
         try {
           const x = onHandler(this.x)
-          resolve(promise2, x)
+          resolveProcedure(promise2, x)
         } catch (e) {
           promise2.reject(e)
         }
